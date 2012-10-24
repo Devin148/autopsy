@@ -97,7 +97,7 @@ public class Chrome extends Extract implements IngestModuleImage {
         //Make these seperate, this is for history
 
         List<FsContent> FFSqlitedb = this.extractFiles(image, "select * from tsk_files where name LIKE 'History' and name NOT LIKE '%journal%' AND parent_path LIKE '%Chrome%'");
-
+        int num = 0;
         int j = 0;
         if (FFSqlitedb != null && !FFSqlitedb.isEmpty()) {
             while (j < FFSqlitedb.size()) {
@@ -129,6 +129,7 @@ public class Chrome extends Extract implements IngestModuleImage {
                         bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_PROG_NAME.getTypeID(), "Recent Activity", "Chrome"));
                         bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_DOMAIN.getTypeID(), "Recent Activity", (Util.extractDomain((result.get("url").toString() != null) ? result.get("url").toString() : ""))));
                         this.addArtifact(ARTIFACT_TYPE.TSK_WEB_HISTORY, FFSqlitedb.get(j), bbattributes);
+                        num++;
                     } catch (Exception ex) {
                         logger.log(Level.WARNING, "Error while trying to read into a sqlite db." + temps, ex);
                         this.addErrorMessage(this.getName() + ": Error while trying to analyze file:" + FFSqlitedb.get(j).getName());
@@ -137,7 +138,7 @@ public class Chrome extends Extract implements IngestModuleImage {
                 j++;
                 dbFile.delete();
             }
-            
+            logger.log(Level.SEVERE, "-----> Chrome history artifacts: " + num);
             services.fireModuleDataEvent(new ModuleDataEvent("Recent Activity", BlackboardArtifact.ARTIFACT_TYPE.TSK_WEB_HISTORY));
         }
     }
@@ -317,7 +318,7 @@ public class Chrome extends Extract implements IngestModuleImage {
     private void getLogin(Image image, IngestImageWorkerController controller) {
 
         List<FsContent> FFSqlitedb = this.extractFiles(image, "select * from tsk_files where name LIKE 'signons.sqlite' and name NOT LIKE '%journal%' and parent_path LIKE '%Chrome%'");
-
+        int num = 0;
         int j = 0;
         if (FFSqlitedb != null && !FFSqlitedb.isEmpty()) {
             while (j < FFSqlitedb.size()) {
@@ -349,6 +350,7 @@ public class Chrome extends Extract implements IngestModuleImage {
                         bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_USERNAME.getTypeID(), "Recent Activity", ((result.get("username_value").toString() != null) ? result.get("username_value").toString().replaceAll("'", "''") : "")));
                         bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_DOMAIN.getTypeID(), "Recent Activity", result.get("signon_realm").toString()));
                         this.addArtifact(ARTIFACT_TYPE.TSK_WEB_HISTORY, FFSqlitedb.get(j), bbattributes);
+                        num++;
                     } catch (Exception ex) {
                         logger.log(Level.WARNING, "Error while trying to read into a sqlite db." + temps, ex);
                         this.addErrorMessage(this.getName() + ": Error while trying to analyze file:" + FFSqlitedb.get(j).getName());
@@ -357,7 +359,7 @@ public class Chrome extends Extract implements IngestModuleImage {
                 j++;
                 dbFile.delete();
             }
-            
+            logger.log(Level.SEVERE, "-----> Chrome login hist artifacts: " + num);
             services.fireModuleDataEvent(new ModuleDataEvent("Recent Activity", BlackboardArtifact.ARTIFACT_TYPE.TSK_WEB_HISTORY));
         }
     }

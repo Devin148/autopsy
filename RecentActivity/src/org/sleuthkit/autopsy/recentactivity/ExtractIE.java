@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 import org.openide.modules.InstalledFileLocator;
 import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.autopsy.coreutils.DecodeUtil;
+import org.sleuthkit.autopsy.coreutils.FileUtil;
 import org.sleuthkit.autopsy.coreutils.JLNK;
 import org.sleuthkit.autopsy.coreutils.JLnkParser;
 import org.sleuthkit.autopsy.datamodel.ContentUtils;
@@ -122,7 +123,7 @@ public class ExtractIE extends Extract implements IngestModuleImage {
         this.getBookmark(image, controller);
         this.getCookie(image, controller);
         this.getRecentDocuments(image, controller);
-        this.parsePascoResults();
+        //this.parsePascoResults();
     }
 
     //Favorites section
@@ -324,6 +325,7 @@ public class ExtractIE extends Extract implements IngestModuleImage {
             }
             String temps;
             String indexFileName;
+            List<String> ids = new ArrayList<String>();
 
             for (FsContent fsc : FsContentCollection) {
                 // Since each result represent an index.dat file,
@@ -345,6 +347,7 @@ public class ExtractIE extends Extract implements IngestModuleImage {
                     logger.log(Level.WARNING, "Error while trying to write index.dat file " + datFile.getAbsolutePath(), e);
                 }
 
+                ids.add(Long.toString(fsc.getId()));
                 boolean bPascProcSuccess = executePasco(temps, (int) fsc.getId());
 
                 //At this point pasco2 proccessed the index files.
@@ -355,6 +358,8 @@ public class ExtractIE extends Extract implements IngestModuleImage {
                     datFile.delete();
                 }
             }
+            
+            parsePascoResults(ids);
         } catch (Exception ioex) {
             logger.log(Level.WARNING, "Error while trying to write index.dat files.", ioex);
         }
@@ -394,14 +399,15 @@ public class ExtractIE extends Extract implements IngestModuleImage {
         return success;
     }
 
-    private void parsePascoResults() {
+    private void parsePascoResults(List<String> ids) {
+        logger.log(Level.SEVERE, "-----> LIST OF IDS: " + ids);
         if (pascoFound == false) {
             return;
         }
         // First thing we want to do is check to make sure the results directory
         // is not empty.
         File rFile = new File(PASCO_RESULTS_PATH);
-
+        int num = 0;
 
         //Let's make sure our list and lut are empty.
         //PASCO_RESULTS_LIST.clear();
@@ -414,6 +420,18 @@ public class ExtractIE extends Extract implements IngestModuleImage {
                 try {
                     for (File file : pascoFiles) {
                         String fileName = file.getName();
+                        logger.log(Level.SEVERE, "-----> Filename: " + fileName);
+                        // All files should be of the same form, and splitable by \\.
+                        // but if not we'll let it continue like regular, just in case
+                        String[] parts = fileName.split("\\.");
+                        if(parts.length > 1) {
+                            if(!ids.contains(parts[1])){
+                                logger.log(Level.SEVERE, "-----> Found a file that's not in our list of id's!");
+                                logger.log(Level.SEVERE, "----------> " + parts[1]);
+                                continue;
+                            }
+                        }
+                        
                         long artObjId = Long.parseLong(fileName.substring(fileName.indexOf(".") + 1, fileName.lastIndexOf(".")));
                         //bbartname = bbartname.substring(0, 4);
 
@@ -492,6 +510,7 @@ public class ExtractIE extends Extract implements IngestModuleImage {
                                             bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_DOMAIN.getTypeID(), "RecentActivity", domain));
                                             bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_USERNAME.getTypeID(), "RecentActivity", user));
                                             bbart.addAttributes(bbattributes);
+                                            num++;
                                         } catch (Exception ex) {
                                             logger.log(Level.WARNING, "Error while trying to read into a sqlite db.{0}", ex);
                                             this.addErrorMessage(this.getName() + ": Error analyzing file:" + tempDb.getAbstractFileById(artObjId).getName());
@@ -521,7 +540,7 @@ public class ExtractIE extends Extract implements IngestModuleImage {
 
             }
         }
-
+        logger.log(Level.SEVERE, "-----> IE history artifacts: " + num);
         services.fireModuleDataEvent(new ModuleDataEvent("Recent Activity", BlackboardArtifact.ARTIFACT_TYPE.TSK_WEB_HISTORY));
     }
 

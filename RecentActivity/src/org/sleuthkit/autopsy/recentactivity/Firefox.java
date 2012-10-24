@@ -93,7 +93,7 @@ public class Firefox extends Extract implements IngestModuleImage {
         //Make these seperate, this is for history
 
         List<FsContent> FFSqlitedb = this.extractFiles(image, "select * from tsk_files where name LIKE '%places.sqlite%' and name NOT LIKE '%journal%' and parent_path LIKE '%Firefox%'");
-
+        int num = 0;
         int j = 0;
         if (FFSqlitedb != null && !FFSqlitedb.isEmpty()) {
             while (j < FFSqlitedb.size()) {
@@ -124,6 +124,7 @@ public class Firefox extends Extract implements IngestModuleImage {
                         bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_PROG_NAME.getTypeID(), "RecentActivity", "FireFox"));
                         bbattributes.add(new BlackboardAttribute(ATTRIBUTE_TYPE.TSK_DOMAIN.getTypeID(), "RecentActivity", (Util.extractDomain((result.get("url").toString() != null) ? result.get("url").toString() : ""))));
                         this.addArtifact(ARTIFACT_TYPE.TSK_WEB_HISTORY, FFSqlitedb.get(j), bbattributes);
+                        num++;
                     } catch (Exception ex) {
                         logger.log(Level.WARNING, "Error while trying to read into a sqlite db." + temps, ex);
                         this.addErrorMessage(this.getName() + ": Error while trying to analyze file:" + FFSqlitedb.get(j).getName());
@@ -132,7 +133,7 @@ public class Firefox extends Extract implements IngestModuleImage {
                 j++;
                 dbFile.delete();
             }
-
+            logger.log(Level.SEVERE, "-----> Firefox history artifacts: " + num);
             services.fireModuleDataEvent(new ModuleDataEvent("Recent Activity", BlackboardArtifact.ARTIFACT_TYPE.TSK_WEB_HISTORY));
         }
     }
