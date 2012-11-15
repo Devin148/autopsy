@@ -285,15 +285,12 @@ public class PlatformUtil {
             BufferedInputStream br = null;
             while(true) {
                 try {
-                    File tmp = new File("\\\\.\\PhysicalDrive" + n);
-                    br = new BufferedInputStream(new FileInputStream(tmp));
-                    int b = br.read();
-                    if(b!=-1) {
-                        String path = "\\\\.\\PhysicalDrive" + n;
+                    String path = "\\\\.\\PhysicalDrive" + n;
+                    if(canReadDrive(path)) {
                         try {
                             drives.add(new LocalDisk("Drive " + n, path, SleuthkitJNI.findDeviceSize(path)));
                         } catch (TskCoreException ex) {
-                            drives.add(new LocalDisk("Drive " + n, path, 0)); // Return a size of 0 if error
+                            // Don't add the drive because we can't read the size
                         }
                         n++;
                     }
@@ -343,7 +340,13 @@ public class PlatformUtil {
                 if(f[i].canRead() && !name.contains("\\\\") && (fsv.isDrive(f[i]) || fsv.isFloppyDrive(f[i]))) {
                     String path = f[i].getPath();
                     String diskPath = "\\\\.\\" + path.substring(0, path.length()-1);
-                    drives.add(new LocalDisk(fsv.getSystemDisplayName(f[i]), diskPath, f[i].getTotalSpace()));
+                    try {
+                        if(canReadDrive(diskPath)) {
+                            drives.add(new LocalDisk(fsv.getSystemDisplayName(f[i]), diskPath, f[i].getTotalSpace()));
+                        }
+                    } catch (IOException ex) {
+                        // Don't add this drive because we can't read it
+                    }
                 }
             }
         } else {
@@ -357,5 +360,24 @@ public class PlatformUtil {
             }
         }
         return drives;
+    }
+    
+    private static boolean canReadDrive(String path) throws IOException {
+        BufferedInputStream br = null;
+        try {
+            File tmp = new File(path);
+            br = new BufferedInputStream(new FileInputStream(tmp));
+            int b = br.read();
+            return b != -1;
+        } catch(IOException ex) {
+            throw ex;
+        } finally {
+            try {
+                if(br != null) {
+                    br.close();
+                }
+            } catch (IOException ex) {
+            }
+        }
     }
 }
