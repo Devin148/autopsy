@@ -144,7 +144,7 @@ class KeywordSearchFilterNode extends FilterNode {
             actions.add(new ExtractAction("Extract File", getOriginal()));
             actions.add(new HashSearchAction("Search for files with the same MD5 hash", getOriginal()));
             actions.add(null); // creates a menu separator
-            actions.add(new BookmarkAction("Bookmark File", getOriginal()));
+            actions.add(new BookmarkAction().addContent(getOriginal()));
             return actions;
         }
 

@@ -60,6 +60,7 @@ import org.sleuthkit.autopsy.datamodel.KeywordHits;
 import org.sleuthkit.autopsy.datamodel.Results;
 import org.sleuthkit.autopsy.datamodel.ResultsNode;
 import org.sleuthkit.autopsy.datamodel.RootContentChildren;
+import org.sleuthkit.autopsy.datamodel.Tags;
 import org.sleuthkit.autopsy.datamodel.Views;
 import org.sleuthkit.autopsy.datamodel.ViewsNode;
 import org.sleuthkit.autopsy.ingest.IngestManager;

@@ -21,20 +21,211 @@ package org.sleuthkit.autopsy.datamodel;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
+import org.openide.nodes.ChildFactory;
+import org.openide.nodes.Children;
+import org.openide.nodes.Node;
+import org.openide.nodes.Sheet;
+import org.openide.util.lookup.Lookups;
 import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import org.sleuthkit.datamodel.AbstractFile;
 import org.sleuthkit.datamodel.BlackboardArtifact;
+import org.sleuthkit.datamodel.BlackboardArtifact.ARTIFACT_TYPE;
 import org.sleuthkit.datamodel.BlackboardAttribute;
 import org.sleuthkit.datamodel.BlackboardAttribute.ATTRIBUTE_TYPE;
 import org.sleuthkit.datamodel.SleuthkitCase;
 import org.sleuthkit.datamodel.TskCoreException;
 
-public class Tags {
+public class Tags implements AutopsyVisitableItem {
     private static final Logger logger = Logger.getLogger(Tags.class.getName());
+    private SleuthkitCase skCase;
     
+    
+    
+
+    public static final String NAME = "Tags";
+    //bookmarks are specializations of tags
+    public static final String BOOKMARK_TAG_NAME = "Bookmark";
+    private static final String BOOKMARK_ICON_PATH = "org/sleuthkit/autopsy/images/star-bookmark-icon-16.png";
+    private static final String TAG_ICON_PATH = "org/sleuthkit/autopsy/images/downloads.png";
+    private final Map<BlackboardArtifact.ARTIFACT_TYPE, List<BlackboardArtifact>> data =
+            new HashMap<BlackboardArtifact.ARTIFACT_TYPE, List<BlackboardArtifact>>();
+    
+    
+    
+    
+    
+    Tags(SleuthkitCase skCase) {
+        this.skCase = skCase;
+    }
+
+    @Override
+    public <T> T accept(AutopsyItemVisitor<T> v) {
+        return v.visit(this);
+    }
+    
+    /**
+     * bookmarks root node with file/result bookmarks
+     */
+    public class TagsRootNode extends DisplayableItemNode {
+
+        public TagsRootNode() {
+            super(Children.create(new Tags.TagsRootChildren(), true), Lookups.singleton(NAME));
+            super.setName(NAME);
+            super.setDisplayName(NAME);
+            this.setIconBaseWithExtension(BOOKMARK_ICON_PATH);
+            initData();
+        }
+
+        private void initData() {
+            data.put(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_FILE, null);
+            data.put(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_ARTIFACT, null);
+
+            try {
+
+                //filter out tags that are not bookmarks
+                //we get bookmarks that have tag names that start with predefined names, preserving the bookmark hierarchy
+                List<BlackboardArtifact> tagFiles = skCase.getBlackboardArtifacts(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_FILE,
+                        BlackboardAttribute.ATTRIBUTE_TYPE.TSK_TAG_NAME,
+                        BOOKMARK_TAG_NAME);
+                List<BlackboardArtifact> tagArtifacts = skCase.getBlackboardArtifacts(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_ARTIFACT,
+                        BlackboardAttribute.ATTRIBUTE_TYPE.TSK_TAG_NAME,
+                        BOOKMARK_TAG_NAME);
+                
+                data.put(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_FILE, tagFiles);
+                data.put(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_ARTIFACT, tagArtifacts);
+            } catch (TskCoreException ex) {
+                logger.log(Level.WARNING, "Count not initialize bookmark nodes, ", ex);
+            }
+
+
+        }
+
+        @Override
+        public <T> T accept(DisplayableItemNodeVisitor<T> v) {
+            return v.visit(this);
+        }
+
+        @Override
+        protected Sheet createSheet() {
+            Sheet s = super.createSheet();
+            Sheet.Set ss = s.get(Sheet.PROPERTIES);
+            if (ss == null) {
+                ss = Sheet.createPropertiesSet();
+                s.put(ss);
+            }
+
+            ss.put(new NodeProperty("Name",
+                    "Name",
+                    "no description",
+                    getName()));
+
+            return s;
+        }
+
+        @Override
+        public DisplayableItemNode.TYPE getDisplayableItemNodeType() {
+            return DisplayableItemNode.TYPE.ARTIFACT;
+        }
+    }
+
+    /**
+     * bookmarks root child node creating types of bookmarks nodes
+     */
+    private class TagsRootChildren extends ChildFactory<BlackboardArtifact.ARTIFACT_TYPE> {
+
+        @Override
+        protected boolean createKeys(List<BlackboardArtifact.ARTIFACT_TYPE> list) {
+            for (BlackboardArtifact.ARTIFACT_TYPE artType : data.keySet()) {
+                list.add(artType);
+            }
+
+            return true;
+        }
+
+        @Override
+        protected Node createNodeForKey(BlackboardArtifact.ARTIFACT_TYPE key) {
+            return new Tags.TagsNodeRoot(key, data.get(key));
+        }
+    }
+
+    /**
+     * Bookmarks node representation (file or result)
+     */
+    public class TagsNodeRoot extends DisplayableItemNode {
+
+        public TagsNodeRoot(BlackboardArtifact.ARTIFACT_TYPE bookType, List<BlackboardArtifact> bookmarks) {
+            super(Children.create(new Tags.TagsChildrenNode(bookmarks), true), Lookups.singleton(bookType.getDisplayName()));
+
+            String name = "NODE ROOT NAME";
+
+            super.setName(name);
+            super.setDisplayName(name + " (" + bookmarks.size() + ")");
+
+            this.setIconBaseWithExtension(BOOKMARK_ICON_PATH);
+        }
+
+        @Override
+        protected Sheet createSheet() {
+            Sheet s = super.createSheet();
+            Sheet.Set ss = s.get(Sheet.PROPERTIES);
+            if (ss == null) {
+                ss = Sheet.createPropertiesSet();
+                s.put(ss);
+            }
+
+            ss.put(new NodeProperty("Name",
+                    "Name",
+                    "no description",
+                    getName()));
+
+            return s;
+        }
+
+        @Override
+        public <T> T accept(DisplayableItemNodeVisitor<T> v) {
+            return v.visit(this);
+        }
+
+        @Override
+        public DisplayableItemNode.TYPE getDisplayableItemNodeType() {
+            return DisplayableItemNode.TYPE.ARTIFACT;
+        }
+
+        @Override
+        public boolean isLeafTypeNode() {
+            return false;
+        }
+    }
+
+    /**
+     * Node representing mail folder content (mail messages)
+     */
+    private class TagsChildrenNode extends ChildFactory<BlackboardArtifact> {
+
+        private List<BlackboardArtifact> bookmarks;
+
+        private TagsChildrenNode(List<BlackboardArtifact> bookmarks) {
+            super();
+            this.bookmarks = bookmarks;
+        }
+
+        @Override
+        protected boolean createKeys(List<BlackboardArtifact> list) {
+            list.addAll(bookmarks);
+            return true;
+        }
+
+        @Override
+        protected Node createNodeForKey(BlackboardArtifact artifact) {
+            return new TagsNode(artifact, TAG_ICON_PATH);
+        }
+    }
+        
     /**
      * Create a tag for a file with TSK_TAG_NAME as tagName.
      * @param file to create tag for
@@ -93,7 +284,9 @@ public class Tags {
      * @param file to create bookmark tag for
      */
     public static void createBookmark(AbstractFile file, String comment) {
-        createTag(file, Bookmarks.BOOKMARK_TAG_NAME, comment);
+        for (int i=0; i<15; i++) {
+            createTag(file, comment, "Tag comment.");
+        }
     }
     
     /**

@@ -20,8 +20,14 @@ package org.sleuthkit.autopsy.directorytree;
 
 import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JSeparator;
 import org.openide.nodes.Node;
+import org.openide.util.actions.Presenter;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import org.sleuthkit.autopsy.datamodel.ContentUtils;
 import org.sleuthkit.autopsy.datamodel.Tags;
@@ -39,37 +45,69 @@ import org.sleuthkit.datamodel.Directory;
  * 
  * TODO add use enters description and hierarchy (TSK_TAG_NAME with slashes)
  */
-public class BookmarkAction extends AbstractAction {
-
+public class BookmarkAction extends AbstractAction implements Presenter.Popup {
     private static final Logger logger = Logger.getLogger(BookmarkAction.class.getName());
-    //content to bookmark
-    private AbstractFile bookmarkFile;
+    
+    private AbstractFile bookmarkContent;
     private BlackboardArtifact bookmarkArtifact;
     private final InitializeBookmarkFileV initializer = new InitializeBookmarkFileV();
 
-    public BookmarkAction(String title, Node contentNode) {
-        super(title);
-        Content content = contentNode.getLookup().lookup(Content.class);
-
-        bookmarkArtifact = null;
-        bookmarkFile = content.accept(initializer);
-        this.setEnabled(bookmarkFile != null);
+    public BookmarkAction() {
+        super("this");
     }
     
-    public BookmarkAction(String title, Content content) {
-        super(title);
-
-        bookmarkArtifact = null;
-        bookmarkFile = content.accept(initializer);
-        this.setEnabled(bookmarkFile != null);
+    public BookmarkAction addContent(Node contentNode) {
+        Content content = contentNode.getLookup().lookup(Content.class);
+        bookmarkContent = content.accept(initializer);
+        return this;
+    }
+    
+    public BookmarkAction addContent(Content content) {
+        bookmarkContent = content.accept(initializer);
+        return this;
+    }
+    
+    public BookmarkAction addArtifact(BlackboardArtifact artifact) {
+        bookmarkArtifact = artifact;
+        return this;
     }
 
-    public BookmarkAction(String title, BlackboardArtifact art) {
-        super(title);
+    @Override
+    public JMenuItem getPopupPresenter() {
+        // Bookmark File
+        // Bookmark Result
+        // -------------------
+        // Create a new Tag
+        // -------------------
+        // Most recent tag 1
+        // Most recent tag 2
+        // Most recent tag 3
+        // Most recent tag 4
+        // Most recent tag 5
         
-        bookmarkArtifact = art;
-        bookmarkFile = null;
-        this.setEnabled(bookmarkArtifact != null);
+        // Tagging options to "always ask for comment"
+        // Tagging options to "show most recent tags"
+        // Allow for redo of comment, rename of tag, deletion of tag
+        
+        JMenu result = new JMenu("Tag");
+        
+        JMenuItem contentItem = new JMenuItem("Bookmark Content");
+        contentItem.setEnabled(bookmarkContent != null);
+        JMenuItem artifactItem = new JMenuItem("Bookmark Result");
+        artifactItem.setEnabled(bookmarkArtifact != null);
+        
+        result.add(this);
+        result.add(artifactItem);
+        result.addSeparator();
+        result.add(new JMenuItem("Create a new tag"));
+        result.addSeparator();
+        result.add(new JMenuItem("Viruses/Malware"));
+        result.add(new JMenuItem("Notable/Terrorism/Bomb"));
+        result.add(new JMenuItem("Nick/Flower"));
+        result.add(new JMenuItem("Most/Recently/Used/Tags"));
+        result.add(new JMenuItem("Other..."));
+        
+        return result;
     }
 
     /**
@@ -109,14 +147,16 @@ public class BookmarkAction extends AbstractAction {
         if(comment == null || comment.isEmpty()) {
             comment = "No Comment";
         }
-        if(bookmarkArtifact != null) {
+        //if(bookmarkArtifact != null) {
             Tags.createBookmark(bookmarkArtifact, comment);
-        } else if(bookmarkFile != null) {
-            Tags.createBookmark(bookmarkFile, comment);
-        }
+        //} else if(bookmarkContent != null) {
+        //    Tags.createBookmark(bookmarkContent, comment);
+        //}
         
         DirectoryTreeTopComponent viewer = DirectoryTreeTopComponent.findInstance();  
         viewer.refreshTree(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_FILE);
         viewer.refreshTree(BlackboardArtifact.ARTIFACT_TYPE.TSK_TAG_ARTIFACT);
+//        CreateTagDialog d = new CreateTagDialog(new JFrame(), true);
+//        d.setVisible(true);
     }
 }

@@ -28,6 +28,8 @@ import org.sleuthkit.autopsy.datamodel.HashsetHits.HashsetHitsSetNode;
 import org.sleuthkit.autopsy.datamodel.KeywordHits.KeywordHitsKeywordNode;
 import org.sleuthkit.autopsy.datamodel.KeywordHits.KeywordHitsListNode;
 import org.sleuthkit.autopsy.datamodel.KeywordHits.KeywordHitsRootNode;
+import org.sleuthkit.autopsy.datamodel.Tags.TagsNodeRoot;
+import org.sleuthkit.autopsy.datamodel.Tags.TagsRootNode;
 
 /**
  * Visitor pattern for DisplayableItemNodes
@@ -39,6 +41,7 @@ public interface DisplayableItemNodeVisitor<T> {
     T visit(ImageNode in);
     T visit(VolumeNode vn);
     T visit(BlackboardArtifactNode ban);
+    T visit(TagsNode tn);
     T visit(ArtifactTypeNode atn);
     T visit(ExtractedContentNode ecn);
     T visit(FileSearchFilterNode fsfn);
@@ -55,6 +58,8 @@ public interface DisplayableItemNodeVisitor<T> {
     T visit(EmailExtractedFolderNode eefn);
     T visit(BookmarksRootNode bksrn);
     T visit(BookmarksNodeRoot bksrn);
+    T visit(TagsRootNode bksrn);
+    T visit(TagsNodeRoot bksrn);
     T visit(ViewsNode vn);
     T visit(ResultsNode rn);
     T visit(ImagesNode in);
@@ -98,6 +103,11 @@ public interface DisplayableItemNodeVisitor<T> {
         @Override
         public T visit(BlackboardArtifactNode ban){
             return defaultVisit(ban);
+        }
+
+        @Override
+        public T visit(TagsNode tn){
+            return defaultVisit(tn);
         }
 
         @Override
@@ -202,6 +212,16 @@ public interface DisplayableItemNodeVisitor<T> {
         
         @Override
         public T visit(BookmarksNodeRoot bksnr) {
+            return defaultVisit(bksnr);
+        }
+        
+        @Override
+        public T visit(TagsRootNode bksrn) {
+            return defaultVisit(bksrn);
+        }
+        
+        @Override
+        public T visit(TagsNodeRoot bksnr) {
             return defaultVisit(bksnr);
         }
     }

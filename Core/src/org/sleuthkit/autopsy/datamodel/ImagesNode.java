@@ -18,10 +18,12 @@
  */
 package org.sleuthkit.autopsy.datamodel;
 
+import java.util.Arrays;
 import java.util.List;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Sheet;
 import org.openide.util.lookup.Lookups;
+import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.datamodel.Content;
 
 /**
@@ -29,7 +31,7 @@ import org.sleuthkit.datamodel.Content;
  */
 public class ImagesNode extends DisplayableItemNode {
 
-    public static final String NAME = "Images";
+    public static final String NAME = "Imagessss";
 
     public ImagesNode(List<Content> images) {
         super(new RootContentChildren(images), Lookups.singleton(NAME));
